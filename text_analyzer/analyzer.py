@@ -1,25 +1,61 @@
+from text_analyzer.file_manager import FileManager
 from collections import Counter
 from nltk.util import ngrams
 import json
 import re
+import pandas as pd
 
-class Analyzer:
+class Analyzer(FileManager):
 
-    def __init__(self, data):
-        self.data = self._preprocess_data(data)
+    def __init__(self):
+        self.data = None
+        self.document_count = None
+        self.char_number = None
+        self.word_number = None
+        self.non_alpha_chars = None
+        self.ngram_dict = None
+        
+    def __str__(self):
+        if isinstance(self.data, pd.DataFrame):
+            return f"Analyzer object with {len(self.data)} documents.\nUse print_stats() method to see stats. You can also use to_json() or to_txt() methods to save stats."
+        else:
+            return "Use read_csv() or read_txt() methods to read data first."
+    
+    def __repr__(self):
+        if isinstance(self.data, pd.DataFrame):
+            return "Analyzer object with {len(self.data)} documents.\nUse print_stats() method to see stats. You can also use to_json() or to_txt() methods to save stats."
+        else:
+            return "Use read_csv() or read_txt() methods to read data first."
+    
+    def read_csv(self, path: str, column_name:str='text', encoding='utf-8'):
+        self.data = self._load_csv(path, column_name, encoding)
+        self.analyze()
+
+    def read_txt(self, path, delimiter='\n'):
+        self.data = self._load_txt(path, delimiter)
+        self.analyze()
+
+    def analyze(self):
+        """Analyze data and update class attributes."""
+        self.document_count = len(self.data)
+        self.data = self._preprocess_data(self.data)
         self.char_number = self._calculate_char_number()
         self.word_number = self._calculate_word_number()
         self.non_alpha_chars = self._count_non_alpha_chars()
         self.ngram_dict = self._calculate_most_used_ngrams()
-    
 
-    def _preprocess_data(self, data):
-        """Preprocess data and add preprocessed text column to data"""
+    def _preprocess_data(self, data: pd.DataFrame):
+        """First check the format of the data then preprocess data and add preprocessed text column to data."""
+        if not isinstance(data, pd.DataFrame):
+            raise TypeError("Data should be a pandas DataFrame.")
+        if 'text' not in data.columns:
+            raise ValueError("Data should have a column named text.")
+        
         data['preprocessed_text'] = data['text'].apply(lambda x: x.lower())
         data['processed_text'] = data['text'].apply(self._preprocessing)
         return data
     
-    def _preprocessing(self, text):
+    def _preprocessing(self, text: str):
         """lower, remove punctuations, remove numbers, remove whitespaces. Use regex."""
         text = text.lower()
 
@@ -33,12 +69,12 @@ class Analyzer:
     def _calculate_char_number(self):
         """calculate number of chars for each doc. Return min, max, mean values as dict"""
         self.data['n_char'] = self.data['text'].apply(lambda x: len(x))
-        return self.data['n_char'].agg(['min', 'mean', 'max']).to_dict()
+        return self.data['n_char'].agg(['min', 'mean', 'max', 'sum']).to_dict()
     
     def _calculate_word_number(self):
         """calculate number of words for each doc. Return min, max, mean values as dict"""
         self.data['n_word'] = self.data['text'].apply(lambda x: len(x.split()))
-        return self.data['n_word'].agg(['min', 'mean', 'max']).to_dict()
+        return self.data['n_word'].agg(['min', 'mean', 'max', 'sum']).to_dict()
     
     def _count_non_alpha_chars(self, n=10):
         non_alpha_chars = Counter()
@@ -69,25 +105,13 @@ class Analyzer:
         import matplotlib.pyplot as plt
 
         data = self.data['processed_text'].tolist() if use_processed_data else self.data['text'].tolist()
-
-        world_cloud = WordCloud(width=800, height=800, background_color='white', min_font_size=10).generate(" ".join(data))
+        world_cloud = WordCloud(width=800, height=800, background_color='white',
+                                 min_font_size=10).generate(" ".join(data))
         plt.axis('off')
         plt.imshow(world_cloud, interpolation='bilinear')
-
         if save:
             world_cloud.to_file(output_name)
-
         plt.show()
-
-    def _get_simple_stats(self):
-
-        n_char_data = self.calculate_char_number()
-        n_word_data = self.calculate_word_number()
-        non_alpha_data = self.count_non_alpha_chars()
-
-        #TODO ways to get number for ï like letters.
-        #TODO: # of links
-        #TODO: # of phone numbers
     
     def print_stats(self, pretty=True):
         analyzer_dict = self.__dict__.copy()
@@ -96,20 +120,13 @@ class Analyzer:
         res = json.dumps(analyzer_dict, indent=4 if pretty else None)
         print(res)
         
-    def to_json(self, output_name):
+    def to_json(self, output_name: str):
+        analyzer_dict = self.__dict__.copy()
+        analyzer_dict.pop('data')
+        self._to_json(analyzer_dict, output_name)
+
+    def to_txt(self, output_name):
         analyzer_dict = self.__dict__.copy()
         analyzer_dict.pop('data')
         
-        if not output_name.endswith('.json'):
-            output_name+='.json'
-        
-        with open(output_name, 'w', encoding='utf-8') as f:
-            json.dump(analyzer_dict, f, indent=4, ensure_ascii=False)
-
-# fm = FileManager()
-# data = fm.read_txt('/Users/fatih/Desktop/val.txt')
-# print(data.iloc[-1, :])
-
-# analyzer = Analyzer(data)
-# analyzer.print_stats()
-# analyzer.generate_word_cloud(save=True, output_name='word_cloud.png')
+        self._to_txt(analyzer_dict, output_name)
