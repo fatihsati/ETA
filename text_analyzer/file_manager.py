@@ -7,9 +7,9 @@ class FileManager:
         
         df = pd.read_csv(path, encoding=encoding)
         if column_name != 'text':
-            df.rename(columns={column_name: 'text'})
+            df.rename(columns={column_name: 'text'}, inplace=True)
             
-        return df[[column_name]]
+        return df[["text"]]
 
     def _load_txt(self, path, delimiter='\n'):
 

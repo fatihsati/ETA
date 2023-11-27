@@ -51,7 +51,6 @@ class Analyzer(FileManager):
         if 'text' not in data.columns:
             raise ValueError("Data should have a column named text.")
         
-        data['preprocessed_text'] = data['text'].apply(lambda x: x.lower())
         data['processed_text'] = data['text'].apply(self._preprocessing)
         return data
     
@@ -67,14 +66,28 @@ class Analyzer(FileManager):
         return text.strip()
     
     def _calculate_char_number(self):
-        """calculate number of chars for each doc. Return min, max, mean values as dict"""
+        """calculate number of chars for each doc. Return min, max, mean values as dict. Include longest and shortest 5 docs's char counts."""
         self.data['n_char'] = self.data['text'].apply(lambda x: len(x))
-        return self.data['n_char'].agg(['min', 'mean', 'max', 'sum']).to_dict()
+        agg_values = self.data['n_char'].agg(['min', 'mean', 'max', 'sum']).to_dict()
+        n_char_sorted = self.data['n_char'].sort_values()
+        N = min(5, len(n_char_sorted))
+        top_N = n_char_sorted.tail(N).tolist()
+        bottom_N = n_char_sorted.head(N).tolist()
+        agg_values['longest_doc_lengths'] = top_N
+        agg_values['shortest_doc_lengths'] = bottom_N
+        return agg_values
     
     def _calculate_word_number(self):
-        """calculate number of words for each doc. Return min, max, mean values as dict"""
+        """calculate number of words for each doc. Return min, max, mean values as dict. Include longest and shortest 5 docs's word counts."""
         self.data['n_word'] = self.data['text'].apply(lambda x: len(x.split()))
-        return self.data['n_word'].agg(['min', 'mean', 'max', 'sum']).to_dict()
+        agg_values = self.data['n_word'].agg(['min', 'mean', 'max', 'sum']).to_dict()
+        n_word_sorted = self.data['n_word'].sort_values()
+        N = min(5, len(n_word_sorted))
+        top_N = n_word_sorted.tail(N).tolist()
+        bottom_N = n_word_sorted.head(N).tolist()
+        agg_values['longest_doc_lengths'] = top_N
+        agg_values['shortest_doc_lengths'] = bottom_N
+        return agg_values
     
     def _count_non_alpha_chars(self, n=10):
         non_alpha_chars = Counter()
@@ -88,11 +101,11 @@ class Analyzer(FileManager):
         return {"10_most_common_with_freq": dict(non_alpha_chars.most_common(n)),
                 "total_count": total_non_alpha_count}
     
-    def _calculate_most_used_ngrams(self, n_min=1, n_max=3, first_k=10):
+    def _calculate_most_used_ngrams(self, n_range=(1,3), first_k=10):
         """calculate most used ngrams for each doc. Return dict of ngrams. Keys are n values. Values are dicts of ngrams and their frequencies. n_min and n_max are used to determine n values. first_k is used to determine how many ngrams will be returned."""
-        text_splitted = [word for sentence in self.data['preprocessed_text'].tolist() for word in sentence.split()]
+        text_splitted = [word for sentence in self.data['processed_text'].tolist() for word in sentence.split()]
         ngram_dict = dict()
-        for n in range(n_min, n_max+1):
+        for n in range(n_range[0], n_range[1]+1):
             ngram = Counter(ngrams(text_splitted, n)).most_common(first_k)
             ngram_freq = {" ".join(phrase): freq for phrase, freq in ngram}
             ngram_dict[n] = ngram_freq
