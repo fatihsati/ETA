@@ -3,22 +3,42 @@ import json
 
 class FileManager:
 
-    def _load_csv(self, path, column_name='text', encoding='utf-8'):
+    def _load_csv(self, path, text_column='text', label_column=None, encoding='utf-8'):
         
         df = pd.read_csv(path, encoding=encoding)
-        if column_name != 'text':
-            df.rename(columns={column_name: 'text'}, inplace=True)
-            
-        return df[["text"]]
+        if text_column in df.columns:
+            if text_column != 'text':
+                df.rename(columns={text_column: 'text'}, inplace=True)
+        else:
+            raise ValueError(f"Text column {text_column} not found in the dataframe.")
 
-    def _load_txt(self, path, delimiter='\n'):
-
-        with open(path, mode="r", encoding="utf-8") as f:
-            data = f.read()
-        data = data.split(delimiter)
-        data = [doc.strip() for doc in data if doc.strip()] # eliminate empty lines, strip docs.
-        df = pd.DataFrame({'text': data})
+        if label_column:
+            if label_column in df.columns:
+                if label_column != 'label':
+                    df.rename(columns={label_column: 'label'}, inplace=True)
+            else:
+                raise ValueError(f"Label column {label_column} not found in the dataframe.")
+     
         return df
+
+    def _load_txt(self, path, delimiter='\n', label_separator=None):
+        """Load txt, use demiliter to split docs. If label_separator is given, split docs into label and text. Labels should be at the beginning of the line. Remove empty lines."""
+
+        with open(path, 'r', encoding='utf-8') as f:
+            data = f.read()
+        
+        data = data.split(delimiter)
+        if label_separator:
+            data = [doc.split(label_separator) for doc in data]
+            data = pd.DataFrame(data, columns=['label', 'text'])
+        else:
+            data = pd.DataFrame(data, columns=['text'])
+        
+        data = data[data['text'] != '']
+        data = data.reset_index(drop=True)
+        data = data.dropna()
+        return data
+        
 
     def _to_json(self, data, output_name: str):
         

@@ -27,12 +27,24 @@ class Analyzer(FileManager):
         else:
             return "Use read_csv() or read_txt() methods to read data first."
     
-    def read_csv(self, path: str, column_name:str='text', encoding='utf-8'):
-        self.data = self._load_csv(path, column_name, encoding)
+    def read_csv(self, path: str, text_column:str='text', encoding='utf-8'):
+        self.data = self._load_csv(path=path, text_column=text_column, encoding=encoding)
         self.analyze()
 
     def read_txt(self, path, delimiter='\n'):
         self.data = self._load_txt(path, delimiter)
+        self.analyze()
+
+    def read_df(self, df: pd.DataFrame, text_column:str='text'):
+        if text_column not in df.columns:
+            raise ValueError(f"Text column {text_column} not found in the dataframe.")
+        if not isinstance(df, pd.DataFrame):
+            raise TypeError("Data should be a pandas DataFrame.")
+        if text_column != 'text':
+            df.rename(columns={text_column: 'text'}, inplace=True)
+        
+        self.data = df
+        self.data = self._preprocess_data(self.data)
         self.analyze()
 
     def analyze(self):
