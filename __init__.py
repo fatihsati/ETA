@@ -1,9 +1,18 @@
-from text_analyzer.analyzer import Analyzer
+from text_analyzer import Analyzer
+from text_analyzer import LabelledAnalyzer
+import pandas as pd
 
-analyzer = Analyzer()
-analyzer.read_txt('text_analyzer/val.txt')
+df = pd.read_csv('movie_reviews.csv', encoding='utf-8')
 
-print(analyzer.data.head())
+# analyzer = Analyzer()
+# analyzer.read_df(df, text_column='review')
+# analyzer.read_csv('movie_reviews.csv', text_column='review')
+# analyzer.read_txt('movie_reviews.txt', delimiter='\n')
+# analyzer.print_stats()
+# analyzer.to_json('val_stats')
+# analyzer.to_txt('val_stats.txt')
 
-analyzer.print_stats()
-analyzer.to_json('val_stats')
+analyzer = LabelledAnalyzer()
+analyzer.read_txt('movie_reviews.txt', delimiter='\n', label_separator='\t')
+# analyzer.print_stats('pos')
+# analyzer.to_txt('stats')
