@@ -17,15 +17,10 @@ class Analyzer(FileManager):
         
     def __str__(self):
         if isinstance(self.data, pd.DataFrame):
-            return f"Analyzer object with {len(self.data)} documents.\nUse print_stats() method to see stats. You can also use to_json() or to_txt() methods to save stats."
+            return f"Analyzer(num_docs={self.document_count}). Use print_stats() method to see stats or use to_json() or to_txt() methods to save stats."
         else:
-            return "Use read_csv() or read_txt() methods to read data first."
+            return "Analyzer(). Use one of the read_csv(), read_txt() or read_df() methods to read data first."
     
-    def __repr__(self):
-        if isinstance(self.data, pd.DataFrame):
-            return "Analyzer object with {len(self.data)} documents.\nUse print_stats() method to see stats. You can also use to_json() or to_txt() methods to save stats."
-        else:
-            return "Use read_csv() or read_txt() methods to read data first."
     
     def read_csv(self, path: str, text_column:str='text', encoding='utf-8'):
         self.data = self._load_csv(path=path, text_column=text_column, encoding=encoding)

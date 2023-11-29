@@ -7,7 +7,14 @@ class LabelledAnalyzer(FileManager):
     def __init__(self):
         self.classes = []
         self.data = None
+        self.num_classes = None
+        self.num_docs = None
 
+    def __str__(self):
+        if self.data:
+            return f"LabelledAnalyzer(num_classes={self.num_classes}, num_docs={self.num_docs}). Use print_stats() method to see stats or use to_json() or to_txt() methods to save stats."
+        else:
+            return "LabelledAnalyzer(). Use read_csv() or read_txt() methods to read data first."
 
     def read_csv(self, path: str, text_column:str='text', label_column='label',
                   encoding='utf-8'):
@@ -27,7 +34,7 @@ class LabelledAnalyzer(FileManager):
     Example
     -------
         >>> analyzer = LabelledAnalyzer()
-        >>> analyzer.read_txt('movie_reviews.txt', delimiter='\n', label_separator='\t')
+        >>> analyzer.read_txt('movie_reviews.txt', delimiter='\\n', label_separator='\\t')
         """
         self.data = self._load_txt(path, delimiter, label_separator)
         self.analyze()
@@ -51,7 +58,15 @@ class LabelledAnalyzer(FileManager):
         """Get class names and analyze each class."""
         self.classes = self._get_classes()
         self.data = self._analyze_classes()
+        self.num_classes = self._get_number_of_classes()
+        self.num_docs = self._get_number_of_documents()
+
+    def _get_number_of_classes(self):
+        return len(self.classes)
     
+    def _get_number_of_documents(self):
+        return self.data.shape[0]
+
     def _check_if_data_loaded(self):
         """Check if data is loaded."""
         if not self.data:
@@ -76,6 +91,7 @@ class LabelledAnalyzer(FileManager):
     def to_json(self, folder_name:str='stats', filename_list=None):
         """
         Save stats for every class in a new json file.
+
         Parameters
         ----------
         folder_name : str, default 'stats'
@@ -102,6 +118,7 @@ class LabelledAnalyzer(FileManager):
     def to_txt(self, folder_name:str='stats', filename_list:list=None):
         """
         Save stats for every class in a new txt file.
+
         Parameters
         ----------
         folder_name : str, default 'stats'
