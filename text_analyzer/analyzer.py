@@ -1,4 +1,5 @@
 from text_analyzer.file_manager import FileManager
+from text_analyzer.plotter import Plotter
 from collections import Counter
 from nltk.util import ngrams
 import json
@@ -21,6 +22,11 @@ class Analyzer(FileManager):
         else:
             return "Analyzer(). Use one of the read_csv(), read_txt() or read_df() methods to read data first."
     
+    def __repr__(self):
+        if isinstance(self.data, pd.DataFrame):
+            return f"Analyzer(num_docs={self.document_count}). Use print_stats() method to see stats or use to_json() or to_txt() methods to save stats."
+        else:
+            return "Analyzer(). Use one of the read_csv(), read_txt() or read_df() methods to read data first."
     
     def read_csv(self, path: str, text_column:str='text', encoding='utf-8'):
         self.data = self._load_csv(path=path, text_column=text_column, encoding=encoding)
@@ -39,7 +45,6 @@ class Analyzer(FileManager):
             df.rename(columns={text_column: 'text'}, inplace=True)
         
         self.data = df
-        self.data = self._preprocess_data(self.data)
         self.analyze()
 
     def analyze(self):
@@ -150,3 +155,41 @@ class Analyzer(FileManager):
         analyzer_dict.pop('data')
         
         self._to_txt(analyzer_dict, output_name)
+    
+    def generate_plots(self, show=True, save=False, output_name='plots.png', return_plot=False):
+        self._check_if_data_loaded()
+        plotter = Plotter()
+        word_distribution = self._get_word_distribution()
+        char_distribution = self._get_char_distribution()
+        plot = plotter.generate_plots_from_series(word_distribution, char_distribution)
+        if save:
+            plot.savefig(output_name)
+        if show:
+            plot.show()
+        if return_plot:
+            return plot
+
+    def _get_word_distribution(self):
+        min_count = self.data['n_word'].min()
+        max_count = self.data['n_word'].max()
+        num_bins = 10
+        bin_size = (max_count - min_count) / num_bins
+        bins = [i for i in range(min_count, max_count + int(bin_size), int(bin_size))]
+        if len(bins) > num_bins + 1:
+            bins = bins[:-1]
+
+        word_interval = pd.cut(self.data['n_word'], bins=bins)
+        return word_interval.value_counts()
+
+    def _get_char_distribution(self):
+        min_count = self.data['n_char'].min()
+        max_count = self.data['n_char'].max()
+        num_bins = 10
+        bin_size = (max_count - min_count) / num_bins
+        bins = [i for i in range(min_count, max_count + int(bin_size), int(bin_size))]
+        if len(bins) > num_bins + 1:
+            bins = bins[:-1]
+        
+        char_interval = pd.cut(self.data['n_char'], bins=bins)
+        return char_interval.value_counts()
+    

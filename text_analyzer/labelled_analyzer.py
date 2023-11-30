@@ -1,17 +1,27 @@
 from text_analyzer.analyzer import Analyzer
 from text_analyzer.file_manager import FileManager
+from text_analyzer.plotter import Plotter
 import os
+import pandas as pd
+pd.options.mode.copy_on_write = True
 
 class LabelledAnalyzer(FileManager):
 
     def __init__(self):
         self.classes = []
         self.data = None
+        self.analyze_objects = None
         self.num_classes = None
         self.num_docs = None
 
     def __str__(self):
-        if self.data:
+        if isinstance(self.data, pd.DataFrame):
+            return f"LabelledAnalyzer(num_classes={self.num_classes}, num_docs={self.num_docs}). Use print_stats() method to see stats or use to_json() or to_txt() methods to save stats."
+        else:
+            return "LabelledAnalyzer(). Use read_csv() or read_txt() methods to read data first."
+    
+    def __repr__(self):
+        if isinstance(self.data, pd.DataFrame):
             return f"LabelledAnalyzer(num_classes={self.num_classes}, num_docs={self.num_docs}). Use print_stats() method to see stats or use to_json() or to_txt() methods to save stats."
         else:
             return "LabelledAnalyzer(). Use read_csv() or read_txt() methods to read data first."
@@ -19,6 +29,7 @@ class LabelledAnalyzer(FileManager):
     def read_csv(self, path: str, text_column:str='text', label_column='label',
                   encoding='utf-8'):
         self.data = self._load_csv(path, text_column, label_column, encoding)
+        self._analyze()
 
     def read_txt(self, path: str, delimiter='\n', label_separator='\t'):
         """
@@ -37,56 +48,42 @@ class LabelledAnalyzer(FileManager):
         >>> analyzer.read_txt('movie_reviews.txt', delimiter='\\n', label_separator='\\t')
         """
         self.data = self._load_txt(path, delimiter, label_separator)
-        self.analyze()
+        self._analyze()
 
-
-    def _get_classes(self):
-        """Get unique classes from data."""
-        classes = self.data['label'].unique()
-        return classes
-    
-    def _analyze_classes(self):
-        """Loop through every class and create an analyzer object for each class. Then analyze it. Return a dictionary with class names as keys and analyzer objects as values."""
-        data = {}
-        for class_ in self.classes:
-            analyzer = Analyzer()
-            analyzer.read_df(self.data[self.data['label']==class_])
-            data[class_] = analyzer
-        return data
-    
-    def analyze(self):
-        """Get class names and analyze each class."""
-        self.classes = self._get_classes()
-        self.data = self._analyze_classes()
-        self.num_classes = self._get_number_of_classes()
-        self.num_docs = self._get_number_of_documents()
-
-    def _get_number_of_classes(self):
-        return len(self.classes)
-    
-    def _get_number_of_documents(self):
-        return self.data.shape[0]
-
-    def _check_if_data_loaded(self):
-        """Check if data is loaded."""
-        if not self.data:
-            raise ValueError("Use read_csv() or read_txt() methods to read data first.")
-        
     def print_stats(self, class_name):
         """print stats for a given class."""
         self._check_if_data_loaded()
 
         if class_name not in self.classes:
             raise ValueError(f"Class {class_name} not found in the data.")
-        self.data[class_name].print_stats()
+        self.analyze_objects[class_name].print_stats()
 
-    def _get_filename_list(self, filename_list):
-        if filename_list:
-            if len(filename_list) != len(self.classes):
-                raise ValueError(f"Length of filename_list should be equal to the number of classes. You have {len(filename_list)} filenames for {len(self.classes)} classes.")
-        else:   # if filename_list is not given, use class names as filenames
-            filename_list = self.classes
-        return filename_list
+    def generate_plots(self, show=True, save=False, output_name='stats', return_plot=False):
+        """Generate single plot for every class."""
+        self._check_if_data_loaded()
+        plotter = Plotter()
+        class_distribution = self._get_class_distribution()
+        word_distribution_dict = self._get_word_distribution()
+        char_distribution_dict = self._get_char_distribution()
+        
+        series_list = []
+        for class_ in self.classes:
+            word_distribution = word_distribution_dict[class_]
+            word_distribution.index.name = class_ + ' ' + word_distribution.index.name
+            series_list.append(word_distribution)
+            char_distribution = char_distribution_dict[class_]
+            char_distribution.index.name = class_ + ' ' + char_distribution.index.name
+            series_list.append(char_distribution)
+
+        series_list.append(class_distribution)
+
+        plot = plotter.generate_plots_from_series(*series_list)
+        if save:
+            plot.savefig(output_name)
+        if show:
+            plot.show()
+        if return_plot:
+            return plot
     
     def to_json(self, folder_name:str='stats', filename_list=None):
         """
@@ -113,7 +110,7 @@ class LabelledAnalyzer(FileManager):
             path = os.path.join(folder_name, str(filename))
             if os.path.exists(path):
                 path = path[:-5] + '_1.json'
-            self.data[class_].to_json(path)
+            self.analyze_objects[class_].to_json(path)
     
     def to_txt(self, folder_name:str='stats', filename_list:list=None):
         """
@@ -140,4 +137,63 @@ class LabelledAnalyzer(FileManager):
             path = os.path.join(folder_name, str(filename))
             if os.path.exists(path):
                 path = path[:-4] + '_1.txt'
-            self.data[class_].to_txt(path)
+            self.analyze_objects[class_].to_txt(path)
+
+    def _analyze(self):
+        """Get class names and analyze each class."""
+        self.classes = self._get_classes()
+        self.analyze_objects = self._analyze_classes()
+        self.num_classes = self._get_number_of_classes()
+        self.num_docs = self._get_number_of_documents()
+
+    def _analyze_classes(self):
+        """Loop through every class and create an analyzer object for each class. Then analyze it. Return a dictionary with class names as keys and analyzer objects as values."""
+        sub_data_dict = {}
+        df = self.data[:]
+        for class_ in self.classes:
+            analyzer = Analyzer()
+            analyzer.read_df(df[df['label']==class_])
+            sub_data_dict[class_] = analyzer
+        return sub_data_dict
+    
+    def _get_number_of_documents(self):
+        return len(self.data)
+    
+    def _get_number_of_classes(self):
+        return len(self.classes)
+    
+    def _get_classes(self):
+        """Get unique classes from data."""
+        return self.data['label'].unique()
+    
+    def _check_if_data_loaded(self):
+        """Check if data is loaded."""
+        if not isinstance(self.data, pd.DataFrame):
+            raise ValueError("Use read_csv() or read_txt() methods to read data first.")
+        
+    def _get_filename_list(self, filename_list):
+        if filename_list:
+            if len(filename_list) != len(self.classes):
+                raise ValueError(f"Length of filename_list should be equal to the number of classes. You have {len(filename_list)} filenames for {len(self.classes)} classes.")
+        else:   # if filename_list is not given, use class names as filenames
+            filename_list = self.classes
+        return filename_list
+    
+    def _get_class_distribution(self):
+        return self.data['label'].value_counts()
+
+    def _get_char_distribution(self):
+        """Get char distribution for every class. Return a dictionary with class names as keys and char distribution series as values."""
+        char_distribution_dict = {}
+        for class_ in self.classes:
+            char_distribution_dict[class_] = self.analyze_objects[class_]._get_char_distribution()
+        return char_distribution_dict
+
+    def _get_word_distribution(self):
+        """Get word distribution for every class. Return a dictionary with class names as keys and word distribution series as values."""
+        word_distribution_dict = {}
+        for class_ in self.classes:
+            word_distribution_dict[class_] = self.analyze_objects[class_]._get_word_distribution()
+        return word_distribution_dict
+    
+    
