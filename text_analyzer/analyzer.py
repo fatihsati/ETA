@@ -49,6 +49,7 @@ class Analyzer(FileManager):
 
     def analyze(self):
         """Analyze data and update class attributes."""
+        self._check_if_data_loaded()
         self.document_count = len(self.data)
         self.data = self._preprocess_data(self.data)
         self.char_number = self._calculate_char_number()
@@ -128,6 +129,7 @@ class Analyzer(FileManager):
         """import wordcloud library and generate a single word cloud with all the documents"""
         from wordcloud import WordCloud
         import matplotlib.pyplot as plt
+        self._check_if_data_loaded()
 
         data = self.data['processed_text'].tolist() if use_processed_data else self.data['text'].tolist()
         world_cloud = WordCloud(width=800, height=800, background_color='white',
@@ -139,6 +141,8 @@ class Analyzer(FileManager):
         plt.show()
     
     def print_stats(self, pretty=True):
+
+        self._check_if_data_loaded()
         analyzer_dict = self.__dict__.copy()
         analyzer_dict.pop('data')
         
@@ -146,11 +150,14 @@ class Analyzer(FileManager):
         print(res)
         
     def to_json(self, output_name: str):
+        self._check_if_data_loaded()
+
         analyzer_dict = self.__dict__.copy()
         analyzer_dict.pop('data')
         self._to_json(analyzer_dict, output_name)
 
     def to_txt(self, output_name):
+        self._check_if_data_loaded()
         analyzer_dict = self.__dict__.copy()
         analyzer_dict.pop('data')
         
@@ -169,6 +176,10 @@ class Analyzer(FileManager):
         if return_plot:
             return plot
 
+    def _check_if_data_loaded(self):
+        if not isinstance(self.data, pd.DataFrame):
+            raise ValueError("Data not loaded. Use read_csv(), read_txt() or read_df() methods to load data first.")
+        
     def _get_word_distribution(self):
         min_count = self.data['n_word'].min()
         max_count = self.data['n_word'].max()
