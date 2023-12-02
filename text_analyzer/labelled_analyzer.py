@@ -29,6 +29,7 @@ class LabelledAnalyzer(FileManager):
     def read_csv(self, path: str, text_column:str='text', label_column='label',
                   encoding='utf-8'):
         self.data = self._load_csv(path, text_column, label_column, encoding)
+        self.data['text'] = self.data['text'].astype(str)
         self._analyze()
 
     def read_txt(self, path: str, delimiter='\n', label_separator='\t'):
@@ -61,6 +62,9 @@ class LabelledAnalyzer(FileManager):
             df.rename(columns={text_column: 'text'}, inplace=True)
         if label_column != 'label':
             df.rename(columns={label_column: 'label'}, inplace=True)
+        
+        # convert text type to string
+        df['text'] = df['text'].astype(str)
         self.data = df
         self._analyze()
 

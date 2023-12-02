@@ -30,6 +30,7 @@ class Analyzer(FileManager):
     
     def read_csv(self, path: str, text_column:str='text', encoding='utf-8'):
         self.data = self._load_csv(path=path, text_column=text_column, encoding=encoding)
+        self.data = self.data['text'].astype(str)
         self.analyze()
 
     def read_txt(self, path, delimiter='\n'):
@@ -44,6 +45,7 @@ class Analyzer(FileManager):
         if text_column != 'text':
             df.rename(columns={text_column: 'text'}, inplace=True)
         
+        df['text'] = df['text'].astype(str)
         self.data = df
         self.analyze()
 
@@ -185,6 +187,8 @@ class Analyzer(FileManager):
         max_count = self.data['n_word'].max()
         num_bins = 10
         bin_size = (max_count - min_count) / num_bins
+        bin_size = max(bin_size, 1) # if bin_size is less than 1, set it to 1
+        print(min_count, max_count, bin_size)
         bins = [i for i in range(min_count, max_count + int(bin_size), int(bin_size))]
         if len(bins) > num_bins + 1:
             bins = bins[:-1]
@@ -197,6 +201,7 @@ class Analyzer(FileManager):
         max_count = self.data['n_char'].max()
         num_bins = 10
         bin_size = (max_count - min_count) / num_bins
+        bin_size = max(bin_size, 1)
         bins = [i for i in range(min_count, max_count + int(bin_size), int(bin_size))]
         if len(bins) > num_bins + 1:
             bins = bins[:-1]
