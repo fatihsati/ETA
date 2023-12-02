@@ -50,6 +50,20 @@ class LabelledAnalyzer(FileManager):
         self.data = self._load_txt(path, delimiter, label_separator)
         self._analyze()
 
+    def read_df(self, df: pd.DataFrame, text_column:str='text', label_column='label'):
+        if text_column not in df.columns:
+            raise ValueError(f"Text column {text_column} not found in the dataframe.")
+        if label_column not in df.columns:
+            raise ValueError(f"Label column {label_column} not found in the dataframe.")
+        if not isinstance(df, pd.DataFrame):
+            raise TypeError("Data should be a pandas DataFrame.")
+        if text_column != 'text':
+            df.rename(columns={text_column: 'text'}, inplace=True)
+        if label_column != 'label':
+            df.rename(columns={label_column: 'label'}, inplace=True)
+        self.data = df
+        self._analyze()
+
     def print_stats(self, class_name):
         """print stats for a given class."""
         self._check_if_data_loaded()
@@ -58,24 +72,27 @@ class LabelledAnalyzer(FileManager):
             raise ValueError(f"Class {class_name} not found in the data.")
         self.analyze_objects[class_name].print_stats()
 
-    def generate_plots(self, show=True, save=False, output_name='stats', return_plot=False):
-        """Generate single plot for every class."""
+    def generate_plots(self, classes:list=None, add_class_distribution=True, show=True, save=False, output_name='stats', return_plot=False):
+        """Generate single plot for every class. If classes is not given, all classes will be plotted."""
         self._check_if_data_loaded()
+        classes = self._check_given_classes(classes)
+
         plotter = Plotter()
-        class_distribution = self._get_class_distribution()
-        word_distribution_dict = self._get_word_distribution()
-        char_distribution_dict = self._get_char_distribution()
+        word_distribution_dict = self._get_word_distribution(classes)
+        char_distribution_dict = self._get_char_distribution(classes)
         
         series_list = []
-        for class_ in self.classes:
+        for class_ in classes:
             word_distribution = word_distribution_dict[class_]
-            word_distribution.index.name = class_ + ' ' + word_distribution.index.name
+            word_distribution.index.name = str(class_) + ' ' + word_distribution.index.name
             series_list.append(word_distribution)
             char_distribution = char_distribution_dict[class_]
-            char_distribution.index.name = class_ + ' ' + char_distribution.index.name
+            char_distribution.index.name = str(class_) + ' ' + char_distribution.index.name
             series_list.append(char_distribution)
 
-        series_list.append(class_distribution)
+        if add_class_distribution:
+            class_distribution = self._get_class_distribution()
+            series_list.append(class_distribution)
 
         plot = plotter.generate_plots_from_series(*series_list)
         if save:
@@ -112,7 +129,7 @@ class LabelledAnalyzer(FileManager):
                 path = path[:-5] + '_1.json'
             self.analyze_objects[class_].to_json(path)
     
-    def to_txt(self, folder_name:str='stats', filename_list:list=None):
+    def to_txt(self, folder_name:str='stats', filename_list:list|None=None):
         """
         Save stats for every class in a new txt file.
 
@@ -182,18 +199,31 @@ class LabelledAnalyzer(FileManager):
     def _get_class_distribution(self):
         return self.data['label'].value_counts()
 
-    def _get_char_distribution(self):
+    def _get_char_distribution(self, classes):
         """Get char distribution for every class. Return a dictionary with class names as keys and char distribution series as values."""
         char_distribution_dict = {}
-        for class_ in self.classes:
+        for class_ in classes:
             char_distribution_dict[class_] = self.analyze_objects[class_]._get_char_distribution()
         return char_distribution_dict
 
-    def _get_word_distribution(self):
+    def _get_word_distribution(self, classes):
         """Get word distribution for every class. Return a dictionary with class names as keys and word distribution series as values."""
         word_distribution_dict = {}
-        for class_ in self.classes:
+        for class_ in classes:
             word_distribution_dict[class_] = self.analyze_objects[class_]._get_word_distribution()
         return word_distribution_dict
     
-    
+    def _check_given_classes(self, classes):
+        
+        if classes is None: # if not given, use all classes
+            return self.classes
+
+        # if given, check if it's a list
+        if not isinstance(classes, list):
+            classes = [classes]
+        
+        # check list elements are in classes
+        for item in classes:
+            if item not in self.classes:
+                raise ValueError(f"Class {item} not found in the data.\nAvailable classes: {self.classes}, dtype: {self.classes.dtype}")
+        return classes

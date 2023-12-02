@@ -15,7 +15,7 @@ class Plotter:
         num_rows = (len(series) + 1) // self.n_cols
 
         fig, axs = plt.subplots(num_rows, self.n_cols, 
-                                fig_size=(
+                                figsize=(
                                     self.figsize_nrow, 
                                     self.figsize_ncols_multiplier * num_rows
                                 ),
