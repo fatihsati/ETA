@@ -5,6 +5,8 @@ from nltk.util import ngrams
 import json
 import re
 import pandas as pd
+import numpy as np
+
 
 class Analyzer(FileManager):
 
@@ -165,11 +167,12 @@ class Analyzer(FileManager):
         
         self._to_txt(analyzer_dict, output_name)
     
-    def generate_plots(self, show=True, save=False, output_name='plots.png', return_plot=False):
+    def generate_plots(self, show=True, num_bins=10, save=False, output_name='plots.png', 
+                       return_plot=False, bins_word=None, bins_char=None):
         self._check_if_data_loaded()
         plotter = Plotter()
-        word_distribution = self._get_word_distribution()
-        char_distribution = self._get_char_distribution()
+        word_distribution = self._get_word_distribution(num_bins=num_bins, bins=bins_word)
+        char_distribution = self._get_char_distribution(num_bins=num_bins, bins=bins_char)
         plot = plotter.generate_plots_from_series(word_distribution, char_distribution)
         if save:
             plot.savefig(output_name)
@@ -182,30 +185,44 @@ class Analyzer(FileManager):
         if not isinstance(self.data, pd.DataFrame):
             raise ValueError("Data not loaded. Use read_csv(), read_txt() or read_df() methods to load data first.")
         
-    def _get_word_distribution(self):
-        min_count = self.data['n_word'].min()
-        max_count = self.data['n_word'].max()
-        num_bins = 10
-        bin_size = (max_count - min_count) / num_bins
-        bin_size = max(bin_size, 1) # if bin_size is less than 1, set it to 1
-        print(min_count, max_count, bin_size)
-        bins = [i for i in range(min_count, max_count + int(bin_size), int(bin_size))]
-        if len(bins) > num_bins + 1:
-            bins = bins[:-1]
-
+    def _get_word_distribution(self, num_bins=10, bins=None):
+        
+        bins = self._calculate_bins(df=self.data, num_bins=num_bins, column_name='n_word') if bins is None else bins
+        
         word_interval = pd.cut(self.data['n_word'], bins=bins)
         return word_interval.value_counts()
 
-    def _get_char_distribution(self):
-        min_count = self.data['n_char'].min()
-        max_count = self.data['n_char'].max()
-        num_bins = 10
+    def _get_char_distribution(self, num_bins=10, bins=None):
+        bins = self._calculate_bins(df=self.data, num_bins=num_bins, column_name='n_char') if bins is None else bins
+    
+        char_interval = pd.cut(self.data['n_char'], bins=bins)
+        return char_interval.value_counts()
+    
+    def _calculate_lower_upper_bounds(self, data: pd.Series):
+        sorted_data = np.sort(data.values)
+        q1 = np.percentile(sorted_data, 25)
+        q3 = np.percentile(sorted_data, 75)
+        iqr = q3 - q1
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+        return lower_bound, upper_bound
+
+    def _calculate_bins(self, df: pd.DataFrame=None, num_bins=10, column_name=None):
+
+        lower_bound, upper_bound = self._calculate_lower_upper_bounds(df[column_name])
+        outlier_column_name = f'is_outlier_{column_name}'
+        df[outlier_column_name] = df[column_name].apply(lambda x: 1 if x < lower_bound or x > upper_bound else 0)
+        data = df[df[outlier_column_name] == 0]
+
+        min_count = data[column_name].min()
+        max_count = data[column_name].max()
         bin_size = (max_count - min_count) / num_bins
         bin_size = max(bin_size, 1)
         bins = [i for i in range(min_count, max_count + int(bin_size), int(bin_size))]
         if len(bins) > num_bins + 1:
             bins = bins[:-1]
         
-        char_interval = pd.cut(self.data['n_char'], bins=bins)
-        return char_interval.value_counts()
+        bins[0] = 0
+        bins.append(df[column_name].max())
+        return bins
     

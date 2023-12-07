@@ -203,18 +203,18 @@ class LabelledAnalyzer(FileManager):
     def _get_class_distribution(self):
         return self.data['label'].value_counts()
 
-    def _get_char_distribution(self, classes):
+    def _get_char_distribution(self, classes, num_bins=10):
         """Get char distribution for every class. Return a dictionary with class names as keys and char distribution series as values."""
         char_distribution_dict = {}
         for class_ in classes:
-            char_distribution_dict[class_] = self.analyze_objects[class_]._get_char_distribution()
+            char_distribution_dict[class_] = self.analyze_objects[class_]._get_char_distribution(num_bins=num_bins)
         return char_distribution_dict
 
-    def _get_word_distribution(self, classes):
+    def _get_word_distribution(self, classes, num_bins=10):
         """Get word distribution for every class. Return a dictionary with class names as keys and word distribution series as values."""
         word_distribution_dict = {}
         for class_ in classes:
-            word_distribution_dict[class_] = self.analyze_objects[class_]._get_word_distribution()
+            word_distribution_dict[class_] = self.analyze_objects[class_]._get_word_distribution(num_bins=num_bins)
         return word_distribution_dict
     
     def _check_given_classes(self, classes):
