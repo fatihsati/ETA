@@ -76,8 +76,28 @@ class LabelledAnalyzer(FileManager):
             raise ValueError(f"Class {class_name} not found in the data.")
         self.analyze_objects[class_name].print_stats()
 
-    def generate_plots(self, classes:list=None, add_class_distribution=True, show=True, save=False, output_name='stats', return_plot=False):
-        """Generate single plot for every class. If classes is not given, all classes will be plotted."""
+    def generate_plots(self, classes:list=None, add_class_distribution=True, show=True, save=False, output_name='stats', return_plot=False, return_list=False):
+        """Generates a plot for word and char distribution for classes. If classes is not given, all classes will be plotted.
+
+    Parameters
+    ----------
+        classes : list, default None
+            List of classes to plot. If not given, all classes will be plotted.
+        add_class_distribution : bool, default True
+            If True, class distribution will be added to the plot.
+        show : bool, default True
+            If True, plot will be shown automatically.
+        save : bool, default False
+            If True, plot will be saved, name will be 'output_name'.
+        output_name : str, default 'stats'
+            Name of the output file. If save is True, plot will be saved as output_name.
+        return_plot : bool, default False
+            If True, plot will be returned as a matplotlib figure at the end of the function.
+        return_list : bool, default False
+            If True, intervals and frequencies will be returned as a list of dictionaries at the end of the function.
+        # return_plot and return_list cannot be used at the same time.
+            """
+        
         self._check_if_data_loaded()
         classes = self._check_given_classes(classes)
 
@@ -103,8 +123,17 @@ class LabelledAnalyzer(FileManager):
             plot.savefig(output_name)
         if show:
             plot.show()
+        if return_plot and return_list:
+            raise ValueError("return_plot and return_list cannot be True at the same time.")
+        
         if return_plot:
             return plot
+        
+        elif return_list:
+            return [s.to_dict() for s in series_list]
+
+        return None
+
     
     def to_json(self, folder_name:str='stats', filename_list=None):
         """
@@ -205,29 +234,40 @@ class LabelledAnalyzer(FileManager):
 
     def _get_char_distribution(self, classes, num_bins=10):
         """Get char distribution for every class. Return a dictionary with class names as keys and char distribution series as values."""
+        char_bins = self._calculate_bins_for_char()
         char_distribution_dict = {}
         for class_ in classes:
-            char_distribution_dict[class_] = self.analyze_objects[class_]._get_char_distribution(num_bins=num_bins)
+            char_distribution_dict[class_] = self.analyze_objects[class_]._get_char_distribution(num_bins=num_bins, bins=char_bins)
         return char_distribution_dict
 
     def _get_word_distribution(self, classes, num_bins=10):
         """Get word distribution for every class. Return a dictionary with class names as keys and word distribution series as values."""
+        word_bins = self._calculate_bins_for_word()
         word_distribution_dict = {}
         for class_ in classes:
-            word_distribution_dict[class_] = self.analyze_objects[class_]._get_word_distribution(num_bins=num_bins)
+            word_distribution_dict[class_] = self.analyze_objects[class_]._get_word_distribution(num_bins=num_bins, bins=word_bins)
         return word_distribution_dict
     
-    def _check_given_classes(self, classes):
+    def _calculate_bins_for_char(self):
+        self.data['n_char'] = self.data['text'].apply(lambda x: len(x))
+        word_bins = self.analyze_objects[self.classes[0]]._calculate_bins(self.data, column_name='n_char')
+
+        return word_bins
+
+    def _calculate_bins_for_word(self):
+        self.data['n_word'] = self.data['text'].apply(lambda x: len(x.split()))
+        word_bins = self.analyze_objects[self.classes[0]]._calculate_bins(self.data, column_name='n_word')
         
+        return word_bins
+
+    def _check_given_classes(self, classes):
         if classes is None: # if not given, use all classes
             return self.classes
 
-        # if given, check if it's a list
-        if not isinstance(classes, list):
+        if not isinstance(classes, list): # if given, check if it's a list
             classes = [classes]
         
-        # check list elements are in classes
-        for item in classes:
+        for item in classes: # check list elements are in classes
             if item not in self.classes:
                 raise ValueError(f"Class {item} not found in the data.\nAvailable classes: {self.classes}, dtype: {self.classes.dtype}")
         return classes
