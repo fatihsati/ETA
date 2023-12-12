@@ -39,7 +39,6 @@ class FileManager:
         data = data.dropna()
         return data
         
-
     def _to_json(self, data, output_name: str):
         
         if not output_name.endswith('.json'):
@@ -47,7 +46,6 @@ class FileManager:
         
         with open(output_name, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
-
 
     def _to_txt(self, data, output_name):
         
@@ -65,4 +63,6 @@ class FileManager:
             else:
                 file.write(' ' * indent + f"{key}: {value}\n")
 
-
+    def _generate_json_output(self, analyzer_dict, pretty):
+        return json.dumps(analyzer_dict, indent=4 if pretty else None)
+        

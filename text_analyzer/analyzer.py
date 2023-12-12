@@ -2,10 +2,9 @@ from text_analyzer.file_manager import FileManager
 from text_analyzer.plotter import Plotter
 from collections import Counter
 from nltk.util import ngrams
-import json
-import re
 import pandas as pd
 import numpy as np
+import re
 
 
 class Analyzer(FileManager):
@@ -31,15 +30,62 @@ class Analyzer(FileManager):
             return "Analyzer(). Use one of the read_csv(), read_txt() or read_df() methods to read data first."
     
     def read_csv(self, path: str, text_column:str='text', encoding='utf-8'):
+        """Load data from csv file
+        
+    Parameters
+    ----------
+        path : str
+            Path of the csv file.
+        text_column : str
+            Name of the column that contains text, by default 'text'
+        encoding : str
+            Encoding of the csv file, by default 'utf-8'
+        
+    Example
+    --------
+        >>> analyzer = Analyzer()
+        >>> analyzer.read_csv('movie_reviews.csv', text_column='review')
+    """
+
         self.data = self._load_csv(path=path, text_column=text_column, encoding=encoding)
         self.data = self.data['text'].astype(str)
         self.analyze()
 
     def read_txt(self, path, delimiter='\n'):
+        """Load data from txt file
+    
+    Parameters
+    ----------
+        path : str
+            Path of the txt file.
+        delimiter : str
+            Delimiter that is used to split documents, by default '\\n'
+        
+    Example
+    --------
+        >>> analyzer = Analyzer()
+        >>> analyzer.read_txt('movie_reviews.txt', delimiter='\\n')
+    """
+
         self.data = self._load_txt(path, delimiter)
         self.analyze()
 
     def read_df(self, df: pd.DataFrame, text_column:str='text'):
+        """Load data from pandas DataFrame
+
+    Parameters
+    ----------
+        df : pandas DataFrame
+            Dataframe that contains text.
+        text_column : str
+            Name of the column that contains text, by default 'text'
+        
+    Example
+    --------
+        >>> analyzer = Analyzer()
+        >>> analyzer.read_df(df, text_column='review')    
+    """
+        
         if text_column not in df.columns:
             raise ValueError(f"Text column {text_column} not found in the dataframe.")
         if not isinstance(df, pd.DataFrame):
@@ -54,22 +100,18 @@ class Analyzer(FileManager):
     def analyze(self):
         """Analyze data and update class attributes."""
         self._check_if_data_loaded()
-        self.document_count = len(self.data)
-        self.data = self._preprocess_data(self.data)
+        self._preprocess_data()
+        self.document_count = self._get_document_count()
         self.char_number = self._calculate_char_number()
         self.word_number = self._calculate_word_number()
         self.non_alpha_chars = self._count_non_alpha_chars()
         self.ngram_dict = self._calculate_most_used_ngrams()
 
-    def _preprocess_data(self, data: pd.DataFrame):
-        """First check the format of the data then preprocess data and add preprocessed text column to data."""
-        if not isinstance(data, pd.DataFrame):
-            raise TypeError("Data should be a pandas DataFrame.")
-        if 'text' not in data.columns:
-            raise ValueError("Data should have a column named text.")
-        
-        data['processed_text'] = data['text'].apply(self._preprocessing)
-        return data
+    def _preprocess_data(self):
+        """Preprocess data. Remove punctuations, numbers, whitespaces. Lowercase.\
+            Add a new column named 'processed_text' to the dataframe.\
+                Update self.data with the new dataframe."""
+        self.data['processed_text'] = self.data['text'].apply(self._preprocessing)
     
     def _preprocessing(self, text: str):
         """lower, remove punctuations, remove numbers, remove whitespaces. Use regex."""
@@ -83,7 +125,8 @@ class Analyzer(FileManager):
         return text.strip()
     
     def _calculate_char_number(self):
-        """calculate number of chars for each doc. Return min, max, mean values as dict. Include longest and shortest 5 docs's char counts."""
+        """calculate number of chars for each doc. Return min, max, mean values as dict. \
+            Include longest and shortest 5 docs's char counts."""
         self.data['n_char'] = self.data['text'].apply(lambda x: len(x))
         agg_values = self.data['n_char'].agg(['min', 'mean', 'max', 'sum']).to_dict()
         n_char_sorted = self.data['n_char'].sort_values()
@@ -95,7 +138,8 @@ class Analyzer(FileManager):
         return agg_values
     
     def _calculate_word_number(self):
-        """calculate number of words for each doc. Return min, max, mean values as dict. Include longest and shortest 5 docs's word counts."""
+        """calculate number of words for each doc. Return min, max, mean values as dict. \
+            Include longest and shortest 5 docs's word counts."""
         self.data['n_word'] = self.data['text'].apply(lambda x: len(x.split()))
         agg_values = self.data['n_word'].agg(['min', 'mean', 'max', 'sum']).to_dict()
         n_word_sorted = self.data['n_word'].sort_values()
@@ -119,7 +163,9 @@ class Analyzer(FileManager):
                 "total_count": total_non_alpha_count}
     
     def _calculate_most_used_ngrams(self, n_range=(1,3), first_k=10):
-        """calculate most used ngrams for each doc. Return dict of ngrams. Keys are n values. Values are dicts of ngrams and their frequencies. n_min and n_max are used to determine n values. first_k is used to determine how many ngrams will be returned."""
+        """calculate most used ngrams for each doc. Return dict of ngrams. Keys are n values. \
+            Values are dicts of ngrams and their frequencies. n_min and n_max are used to \
+                determine n values. first_k is used to determine how many ngrams will be returned."""
         text_splitted = [word for sentence in self.data['processed_text'].tolist() for word in sentence.split()]
         ngram_dict = dict()
         for n in range(n_range[0], n_range[1]+1):
@@ -129,20 +175,27 @@ class Analyzer(FileManager):
 
         return ngram_dict
 
+    def _get_document_count(self):
+        return len(self.data)
+    
     def generate_word_cloud(self, use_processed_data=True, save=False, output_name='word_cloud.png'):
         """import wordcloud library and generate a single word cloud with all the documents"""
-        from wordcloud import WordCloud
-        import matplotlib.pyplot as plt
+
+        plotter = Plotter()
         self._check_if_data_loaded()
 
         data = self.data['processed_text'].tolist() if use_processed_data else self.data['text'].tolist()
-        world_cloud = WordCloud(width=800, height=800, background_color='white',
-                                 min_font_size=10).generate(" ".join(data))
-        plt.axis('off')
-        plt.imshow(world_cloud, interpolation='bilinear')
+        world_cloud = plotter.get_word_cloud(data, width=800, height=800, background_color='white')
         if save:
             world_cloud.to_file(output_name)
-        plt.show()
+        world_cloud.show()
+        # world_cloud = WordCloud(width=800, height=800, background_color='white',
+        #                          min_font_size=10).generate(" ".join(data))
+        # plt.axis('off')
+        # plt.imshow(world_cloud, interpolation='bilinear')
+        # if save:
+        #     world_cloud.to_file(output_name)
+        # plt.show()
     
     def print_stats(self, pretty=True):
 
@@ -150,7 +203,7 @@ class Analyzer(FileManager):
         analyzer_dict = self.__dict__.copy()
         analyzer_dict.pop('data')
         
-        res = json.dumps(analyzer_dict, indent=4 if pretty else None)
+        res = self._generate_json_output(analyzer_dict, pretty=pretty)
         print(res)
         
     def to_json(self, output_name: str):

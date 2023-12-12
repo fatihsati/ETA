@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
 
 class Plotter:
     def __init__(self, figsize_nrow=10, n_cols=2, figsize_ncols_multiplier=3, hspace=0.95, wspace=0.3):
@@ -45,3 +46,11 @@ class Plotter:
         
         return plt
 
+    def get_word_cloud(data, width=800, height=800, background_color='white'):
+        
+        world_cloud = WordCloud(width=width, height=height,\
+                                 background_color=background_color,
+                                 min_font_size=10).generate(" ".join(data))
+        
+        return world_cloud
+    
