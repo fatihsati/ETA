@@ -1,10 +1,12 @@
+import re
+from collections import Counter
+
+import numpy as np
+import pandas as pd
+from nltk.util import ngrams
+
 from ETA.file_manager import FileManager
 from ETA.plotter import Plotter
-from collections import Counter
-from nltk.util import ngrams
-import pandas as pd
-import numpy as np
-import re
 
 
 class Analyzer(FileManager):

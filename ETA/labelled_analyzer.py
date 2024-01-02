@@ -1,8 +1,10 @@
+import os
+
+import pandas as pd
+
 from ETA.analyzer import Analyzer
 from ETA.file_manager import FileManager
 from ETA.plotter import Plotter
-import pandas as pd
-import os
 
 
 class LabelledAnalyzer(FileManager):
