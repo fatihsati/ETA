@@ -1,5 +1,8 @@
-/env*
-*/__pycache__/*
+env/
+ETA/__pycache__/
+stats/
 *.json
 *.txt
 *.csv
+*.png
+!requirements.txt
