@@ -180,21 +180,29 @@ class LabelledAnalyzer(FileManager):
 
         return plot
 
-    def generate_ngram_plots(self, save=True, output_name="ngram_stats.png", show=False):
-        
-        plotter = Plotter(n_cols=3, add_value=False, tick_rotation=60)
+    def generate_ngram_plots(
+        self, save=True, output_name="ngram_stats.png", show=False
+    ):
+        plotter = Plotter(
+            n_cols=3, add_value=False, tick_rotation=60, figsize_ncols_multiplier=4
+        )
 
         series_list = []
         for class_ in self.classes:
             series_list.extend(
                 self.analyze_objects[class_]._get_ngram_series(name_prefix=class_)
             )
-        plot = plotter.generate_plots_from_series(*series_list, sort_value=True, title_suffix='Ngram Frequencies', x_label=None, y_label='Frequency')
+        plot = plotter.generate_plots_from_series(
+            *series_list,
+            sort_value=True,
+            title_suffix="Ngram Frequencies",
+            x_label=None,
+            y_label="Frequency",
+        )
         if save:
             plot.savefig(output_name)
         if show:
             plot.show()
-
 
     def to_json(self, folder_name: str = "stats", filename_list=None):
         """
@@ -327,7 +335,7 @@ class LabelledAnalyzer(FileManager):
         char_distribution_list = []
         for class_ in classes:
             distribution_series = self.analyze_objects[class_]._get_char_distribution(
-                num_bins=num_bins, bins=char_bins
+                bins=char_bins
             )
             distribution_series.index.name = (
                 str(class_) + " " + distribution_series.index.name
@@ -343,7 +351,7 @@ class LabelledAnalyzer(FileManager):
         word_distribution_list = []
         for class_ in classes:
             distribution_series = self.analyze_objects[class_]._get_word_distribution(
-                num_bins=num_bins, bins=word_bins
+                bins=word_bins
             )
             distribution_series.index.name = (
                 str(class_) + " " + distribution_series.index.name
