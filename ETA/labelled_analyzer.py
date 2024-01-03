@@ -127,8 +127,6 @@ class LabelledAnalyzer(FileManager):
         show=True,
         save=False,
         output_name="stats",
-        return_plot=False,
-        return_list=False,
     ):
         """Generates a plot for word and char distribution for classes. If classes is not given, all classes will be plotted.
 
@@ -180,17 +178,23 @@ class LabelledAnalyzer(FileManager):
         if show:
             plot.show()
 
-        if return_plot and return_list:
-            raise ValueError(
-                "return_plot and return_list cannot be True at the same time."
+        return plot
+
+    def generate_ngram_plots(self, save=True, output_name="ngram_stats.png", show=False):
+        
+        plotter = Plotter(n_cols=3, add_value=False, tick_rotation=60)
+
+        series_list = []
+        for class_ in self.classes:
+            series_list.extend(
+                self.analyze_objects[class_]._get_ngram_series(name_prefix=class_)
             )
+        plot = plotter.generate_plots_from_series(*series_list, sort_value=True, title_suffix='Ngram Frequencies', x_label=None, y_label='Frequency')
+        if save:
+            plot.savefig(output_name)
+        if show:
+            plot.show()
 
-        if return_plot:
-            return plot
-        elif return_list:
-            return [s.to_dict() for s in series_list]
-
-        return None
 
     def to_json(self, folder_name: str = "stats", filename_list=None):
         """

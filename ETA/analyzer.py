@@ -10,13 +10,16 @@ from ETA.plotter import Plotter
 
 
 class Analyzer(FileManager):
-    def __init__(self):
+    def __init__(self, stopwords='english'):
+        self.stopwords = self.get_stopwords(stopwords)
+
         self.data = None
         self.document_count = None
         self.char_number = None
         self.word_number = None
         self.non_alpha_chars = None
         self.ngram_dict = None
+
 
     def __str__(self):
         if isinstance(self.data, pd.DataFrame):
@@ -51,8 +54,8 @@ class Analyzer(FileManager):
         self.data = self._load_csv(
             path=path, text_column=text_column, encoding=encoding
         )
-        self.data = self.data["text"].astype(str)
-        self.analyze()
+        self.data["text"] = self.data["text"].astype(str)
+        self.analyze() 
 
     def read_txt(self, path, delimiter="\n"):
         """Load data from txt file
@@ -125,6 +128,8 @@ class Analyzer(FileManager):
         text = re.sub(r"\s+", " ", text)
         text = re.sub(r" +", " ", text)
         text = re.sub(r"\n", " ", text)
+
+        text = " ".join([word for word in text.split() if word not in self.stopwords])
         return text.strip()
 
     def _calculate_char_number(self):
@@ -169,7 +174,7 @@ class Analyzer(FileManager):
             "total_count": total_non_alpha_count,
         }
 
-    def _calculate_most_used_ngrams(self, n_range=(1, 3), first_k=10):
+    def _calculate_most_used_ngrams(self, n_range=(1, 3), first_k=10, stop_words=None):
         """calculate most used ngrams for each doc. Return dict of ngrams. Keys are n values. \
             Values are dicts of ngrams and their frequencies. n_min and n_max are used to \
                 determine n values. first_k is used to determine how many ngrams will be returned."""
@@ -208,13 +213,33 @@ class Analyzer(FileManager):
         if save:
             world_cloud.to_file(output_name)
         world_cloud.show()
-        # world_cloud = WordCloud(width=800, height=800, background_color='white',
-        #                          min_font_size=10).generate(" ".join(data))
-        # plt.axis('off')
-        # plt.imshow(world_cloud, interpolation='bilinear')
-        # if save:
-        #     world_cloud.to_file(output_name)
-        # plt.show()
+
+    def generate_ngram_plots(self, save=True, output_name="ngram_plots.png", show=False):
+        
+        plotter = Plotter()
+        
+        series_list = self._get_ngram_series()
+
+        plot = plotter.generate_plots_from_series(
+            *series_list, 
+            sort_value=True, 
+            y_label='Frequency', 
+            x_label='N-grams', 
+            title_suffix='Frequency'
+            )
+        if save:
+            plot.savefig(output_name)
+        if show:
+            plot.show()
+    
+    def _get_ngram_series(self, name_prefix=None):
+        
+        series_list = []
+        for n, ngram_dict in self.ngram_dict.items():
+            series = pd.Series(ngram_dict)
+            series.index.name = f"{n}-gram" if name_prefix is None else f"{name_prefix}_{n}-gram"
+            series_list.append(series)
+        return series_list
 
     def print_stats(self, pretty=True):
         self._check_if_data_loaded()
@@ -318,3 +343,18 @@ class Analyzer(FileManager):
         bins[0] = 0
         bins.append(df[column_name].max())
         return bins
+
+    def get_stopwords(self, stop_words='english'):
+        """
+        Get stopwords from nltk or from a list of stopwords.
+        """
+        if isinstance(stop_words, str):
+            import nltk
+            nltk.download('stopwords')
+            from nltk.corpus import stopwords
+            return stopwords.words(stop_words)
+
+        elif isinstance(stop_words, list):
+            return stop_words
+        else:
+            raise TypeError("Stopwords should be a list of stopwords or a string that indicates the language.")
