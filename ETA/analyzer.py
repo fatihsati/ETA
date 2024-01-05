@@ -1,3 +1,4 @@
+import os
 import re
 from collections import Counter
 
@@ -24,13 +25,6 @@ class Analyzer(FileManager):
         self.ngram_firstk = ngram_firstk
         self.n_disrtibution_bins = n_disrtibution_bins
         self.stopword_list = self.get_stopwords()
-
-        self.data = None
-        self.document_count = None
-        self.char_number = None
-        self.word_number = None
-        self.non_alpha_chars = None
-        self.ngram_dict = None
 
     def __str__(self):
         if isinstance(self.data, pd.DataFrame):
@@ -211,7 +205,7 @@ class Analyzer(FileManager):
         return len(self.data)
 
     def generate_word_cloud(
-        self, use_processed_data=True, save=False, output_name="word_cloud.png"
+        self, use_processed_data=True, output_path="./", filename="wordcloud.png"
     ):
         """import wordcloud library and generate a single word cloud with all the documents"""
 
@@ -226,12 +220,12 @@ class Analyzer(FileManager):
         world_cloud = plotter.get_word_cloud(
             data, width=800, height=800, background_color="white"
         )
-        if save:
-            world_cloud.to_file(output_name)
-        world_cloud.show()
+
+        path = os.path.join(output_path, filename)
+        world_cloud.to_file(path)
 
     def generate_ngram_plots(
-        self, save=True, output_name="ngram_plots.png", show=False
+        self, save=True, output_path="ngram_plots.png", show=False
     ):
         plotter = Plotter(figsize_ncols_multiplier=4)
 
@@ -245,7 +239,7 @@ class Analyzer(FileManager):
             title_suffix="Frequency",
         )
         if save:
-            plot.savefig(output_name)
+            plot.savefig(output_path)
         if show:
             plot.show()
 
@@ -267,25 +261,34 @@ class Analyzer(FileManager):
         res = self._generate_json_output(analyzer_dict, pretty=pretty)
         print(res)
 
-    def to_json(self, output_name: str):
+    def to_json(self, filename: str = "analysis", folder_name: str = None):
         self._check_if_data_loaded()
 
         analyzer_dict = self.__dict__.copy()
         analyzer_dict.pop("data")
-        self._to_json(analyzer_dict, output_name)
 
-    def to_txt(self, output_name):
+        if not folder_name:
+            folder_name = "./"
+
+        folder_path = os.path.join(folder_name, filename)
+        self._to_json(analyzer_dict, folder_path)
+
+    def to_txt(self, filename: str = "analysis", folder_name: str = None):
         self._check_if_data_loaded()
         analyzer_dict = self.__dict__.copy()
         analyzer_dict.pop("data")
 
-        self._to_txt(analyzer_dict, output_name)
+        if not folder_name:
+            folder_name = "./"
+
+        folder_path = os.path.join(folder_name, filename)
+        self._to_txt(analyzer_dict, folder_path)
 
     def generate_distribution_plots(
         self,
         show=True,
         save=False,
-        output_name="plots.png",
+        output_path="plots.png",
         return_plot=False,
         bins_word=None,
         bins_char=None,
@@ -296,7 +299,7 @@ class Analyzer(FileManager):
         char_distribution = self._get_char_distribution(bins=bins_char)
         plot = plotter.generate_plots_from_series(word_distribution, char_distribution)
         if save:
-            plot.savefig(output_name)
+            plot.savefig(output_path)
         if show:
             plot.show()
         if return_plot:
@@ -365,9 +368,6 @@ class Analyzer(FileManager):
             return None
 
         if isinstance(self.stopwords, str):
-            import nltk
-
-            nltk.download("stopwords")
             from nltk.corpus import stopwords
 
             return stopwords.words(self.stopwords)

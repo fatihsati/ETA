@@ -8,12 +8,21 @@ from ETA.plotter import Plotter
 
 
 class LabelledAnalyzer(FileManager):
-    def __init__(self):
+    def __init__(
+        self,
+        stopwords="english",
+        n_nonalpha=10,
+        ngram_nrange=(1, 3),
+        ngram_firstk=10,
+        n_disrtibution_bins=10,
+    ):
+        self.stopwords = stopwords
+        self.n_nonalpha = n_nonalpha
+        self.ngram_nrange = ngram_nrange
+        self.ngram_firstk = ngram_firstk
+        self.n_disrtibution_bins = n_disrtibution_bins
+
         self.classes = []
-        self.data = None
-        self.analyze_objects = None
-        self.num_classes = None
-        self.num_docs = None
 
     def __str__(self):
         if isinstance(self.data, pd.DataFrame):
@@ -126,7 +135,7 @@ class LabelledAnalyzer(FileManager):
         add_class_distribution=True,
         show=True,
         save=False,
-        output_name="stats",
+        output_path="stats",
     ):
         """Generates a plot for word and char distribution for classes. If classes is not given, all classes will be plotted.
 
@@ -139,9 +148,9 @@ class LabelledAnalyzer(FileManager):
             show : bool, default True
                 If True, plot will be shown automatically.
             save : bool, default False
-                If True, plot will be saved, name will be 'output_name'.
-            output_name : str, default 'stats'
-                Name of the output file. If save is True, plot will be saved as output_name.
+                If True, plot will be saved, name will be 'output_path'.
+            output_path : str, default 'stats'
+                Name of the output file. If save is True, plot will be saved as output_path.
             return_plot : bool, default False
                 If True, plot will be returned as a matplotlib figure at the end of the function.
             return_list : bool, default False
@@ -152,7 +161,7 @@ class LabelledAnalyzer(FileManager):
         -------
             >>> analyzer = LabelledAnalyzer()
             >>> analyzer.read_csv('movie_reviews.csv', text_column='review', label_column='sentiment')
-            >>> analyzer.generate_distribution_plots(add_class_distribution=False, show=True, save=True, output_name='stats')
+            >>> analyzer.generate_distribution_plots(add_class_distribution=False, show=True, save=True, output_path='distribution_plots.png')
         """
 
         self._check_if_data_loaded()
@@ -174,14 +183,14 @@ class LabelledAnalyzer(FileManager):
 
         plot = plotter.generate_plots_from_series(*series_list)
         if save:
-            plot.savefig(output_name)
+            plot.savefig(output_path)
         if show:
             plot.show()
 
         return plot
 
     def generate_ngram_plots(
-        self, save=True, output_name="ngram_stats.png", show=False
+        self, save=True, output_path="ngram_stats.png", show=False
     ):
         plotter = Plotter(
             n_cols=3, add_value=False, tick_rotation=60, figsize_ncols_multiplier=4
@@ -200,9 +209,19 @@ class LabelledAnalyzer(FileManager):
             y_label="Frequency",
         )
         if save:
-            plot.savefig(output_name)
+            plot.savefig(output_path)
         if show:
             plot.show()
+
+    def generate_word_cloud(self, use_processed_data=True, output_path="./"):
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        for class_ in self.classes:
+            self.analyze_objects[class_].generate_word_cloud(
+                use_processed_data,
+                output_path=output_path,
+                filename=str(class_) + "_w_cloud.png",
+            )
 
     def to_json(self, folder_name: str = "stats", filename_list=None):
         """
@@ -280,7 +299,13 @@ class LabelledAnalyzer(FileManager):
         sub_data_dict = {}
         df = self.data[:]
         for class_ in self.classes:
-            analyzer = Analyzer()
+            analyzer = Analyzer(
+                stopwords=self.stopwords,
+                n_nonalpha=self.n_nonalpha,
+                ngram_nrange=self.ngram_nrange,
+                ngram_firstk=self.ngram_firstk,
+                n_disrtibution_bins=self.n_disrtibution_bins,
+            )
             analyzer.read_df(df[df["label"] == class_])
             sub_data_dict[class_] = analyzer
         return sub_data_dict
@@ -328,7 +353,7 @@ class LabelledAnalyzer(FileManager):
     def _get_class_distribution(self):
         return self.data["label"].value_counts()
 
-    def _get_char_distribution(self, classes, num_bins=10):
+    def _get_char_distribution(self, classes):
         """Get char distribution for every class. Return a list of Series indicating char distribution for every class.
         Class names are added to index names."""
         char_bins = self._calculate_bins_for_char()
@@ -344,7 +369,7 @@ class LabelledAnalyzer(FileManager):
 
         return char_distribution_list
 
-    def _get_word_distribution(self, classes, num_bins=10):
+    def _get_word_distribution(self, classes):
         """Get word distribution for every class. Return a list of Series indicating char distribution for every class.
         Class names are added to index names."""
         word_bins = self._calculate_bins_for_word()
