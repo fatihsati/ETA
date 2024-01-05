@@ -58,7 +58,7 @@ class Plotter:
 
         return plt
 
-    def get_word_cloud(data, width=800, height=800, background_color="white"):
+    def get_word_cloud(self, data, width=800, height=800, background_color="white"):
         world_cloud = WordCloud(
             width=width,
             height=height,
