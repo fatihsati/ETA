@@ -187,7 +187,6 @@ class LabelledAnalyzer(FileManager):
         if show:
             plot.show()
 
-        return plot
 
     def generate_ngram_plots(
         self, save=True, output_path="ngram_stats.png", show=False
@@ -214,13 +213,12 @@ class LabelledAnalyzer(FileManager):
             plot.show()
 
     def generate_word_cloud(self, use_processed_data=True, output_path="./"):
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
+        
         for class_ in self.classes:
+            path = output_path + f"_{class_}.png"
             self.analyze_objects[class_].generate_word_cloud(
-                use_processed_data,
-                output_path=output_path,
-                filename=str(class_) + "_w_cloud.png",
+                use_processed_data=use_processed_data,
+                output_path=path
             )
 
     def to_json(self, folder_name: str = "stats", filename_list=None):
