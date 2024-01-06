@@ -72,10 +72,7 @@ if __name__ == "__main__":
         help="Output folder name. Output folder will be created if it does not exist.",
     )
     parser.add_argument(
-        "--file_type", default=True, help="Save stats as json and txt files."
-    )
-    parser.add_argument(
-        "--stats_type", default="json", help="Stats file type. Can be json or txt."
+        "--file_type", default="json", help="Stats file type. Can be json or txt."
     )
     parser.add_argument("--save_plots", default=True, help="Save plots as png files.")
 
