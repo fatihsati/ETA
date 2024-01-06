@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 from nltk.util import ngrams
 
-from ETA.file_manager import FileManager
-from ETA.plotter import Plotter
+from analyzer.file_manager import FileManager
+from analyzer.plotter import Plotter
 
 
 class Analyzer(FileManager):
