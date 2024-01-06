@@ -1,8 +1,10 @@
 env/
-ETA/__pycache__/
+__pycache__/
 stats/
 *.json
 *.txt
 *.csv
 *.png
+*.ipynb
+
 !requirements.txt
