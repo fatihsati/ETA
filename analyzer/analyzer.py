@@ -205,7 +205,7 @@ class Analyzer(FileManager):
         return len(self.data)
 
     def generate_word_cloud(
-        self, use_processed_data=True, output_path="./", filename="wordcloud.png"
+        self, use_processed_data=True, output_path="./wordcloud.png"
     ):
         """import wordcloud library and generate a single word cloud with all the documents"""
 
@@ -221,8 +221,7 @@ class Analyzer(FileManager):
             data, width=800, height=800, background_color="white"
         )
 
-        path = os.path.join(output_path, filename)
-        world_cloud.to_file(path)
+        world_cloud.to_file(output_path)
 
     def generate_ngram_plots(
         self, save=True, output_path="ngram_plots.png", show=False
@@ -289,7 +288,6 @@ class Analyzer(FileManager):
         show=True,
         save=False,
         output_path="plots.png",
-        return_plot=False,
         bins_word=None,
         bins_char=None,
     ):
@@ -302,8 +300,6 @@ class Analyzer(FileManager):
             plot.savefig(output_path)
         if show:
             plot.show()
-        if return_plot:
-            return plot
 
     def _check_if_data_loaded(self):
         if not isinstance(self.data, pd.DataFrame):

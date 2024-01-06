@@ -135,4 +135,4 @@ if __name__ == "__main__":
         analyzer.generate_ngram_plots(
             show=False, save=True, output_path=args.output_folder + "/ngram_plots"
         )
-        analyzer.generate_word_cloud(output_path=args.output_folder)
+        analyzer.generate_word_cloud(output_path=args.output_folder + "/word_cloud")
