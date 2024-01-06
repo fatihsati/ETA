@@ -220,7 +220,8 @@ class Analyzer(FileManager):
         world_cloud = plotter.get_word_cloud(
             data, width=800, height=800, background_color="white"
         )
-
+        if not output_path.endswith(".png"):
+            output_path = output_path + ".png"
         world_cloud.to_file(output_path)
 
     def generate_ngram_plots(

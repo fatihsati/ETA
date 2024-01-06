@@ -1,9 +1,6 @@
 import os
 import sys
 
-# sys.path.append(os.getcwd())
-# sys.path.append(os.path.dirname(os.getcwd()))
-# print(sys.path)
 import argparse
 
 from analyzer import Analyzer
