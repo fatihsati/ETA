@@ -133,7 +133,7 @@ class LabelledAnalyzer(FileManager):
         self,
         classes: list = None,
         add_class_distribution=True,
-        show=True,
+        show=False,
         save=False,
         output_path="stats",
     ):

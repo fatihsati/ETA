@@ -286,7 +286,7 @@ class Analyzer(FileManager):
 
     def generate_distribution_plots(
         self,
-        show=True,
+        show=False,
         save=False,
         output_path="plots.png",
         bins_word=None,
