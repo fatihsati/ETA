@@ -16,6 +16,15 @@ class LabelledAnalyzer(FileManager):
         ngram_firstk=10,
         n_disrtibution_bins=10,
     ):
+        """LabelledAnalyzer class to analyze text data based on labels.
+
+    Parameters
+    ----------
+        stopwords : str or list, if str, it should be a language name. If list, it should be a list of stopwords. Default is 'english'.
+        n_nonalpha : int, number of most common non-alphabetic characters to show. Default is 10.
+        ngram_nrange : tuple, range of n values for ngrams. Default is (1, 3).
+        ngram_firstk : int, number of most common ngrams to show. Default is 10.
+        n_disrtibution_bins : int, number of bins for distribution plots. Default is 10."""
         self.stopwords = stopwords
         self.n_nonalpha = n_nonalpha
         self.ngram_nrange = ngram_nrange
@@ -134,7 +143,7 @@ class LabelledAnalyzer(FileManager):
         classes: list = None,
         add_class_distribution=True,
         show=False,
-        save=False,
+        save=True,
         output_path="stats",
     ):
         """Generates a plot for word and char distribution for classes. If classes is not given, all classes will be plotted.

@@ -19,6 +19,15 @@ class Analyzer(FileManager):
         ngram_firstk=10,
         n_disrtibution_bins=10,
     ):
+        """Analyzer class to analyze text data.
+        
+    Parameters
+    ----------
+        stopwords : str or list, if str, it should be a language name. If list, it should be a list of stopwords. Default is 'english'.
+        n_nonalpha : int, number of most common non-alphabetic characters to show. Default is 10.
+        ngram_nrange : tuple, range of n values for ngrams. Default is (1, 3).
+        ngram_firstk : int, number of most common ngrams to show. Default is 10.
+        n_disrtibution_bins : int, number of bins for distribution plots. Default is 10."""
         self.stopwords = stopwords
         self.n_nonalpha = n_nonalpha
         self.ngram_nrange = ngram_nrange
@@ -178,7 +187,7 @@ class Analyzer(FileManager):
             total_non_alpha_count += len(non_alpha)
 
         return {
-            "10_most_common_with_freq": dict(
+            f"{self.n_nonalpha}_most_common_with_freq": dict(
                 non_alpha_chars.most_common(self.n_nonalpha)
             ),
             "total_count": total_non_alpha_count,
@@ -287,7 +296,7 @@ class Analyzer(FileManager):
     def generate_distribution_plots(
         self,
         show=False,
-        save=False,
+        save=True,
         output_path="plots.png",
         bins_word=None,
         bins_char=None,
