@@ -3,8 +3,8 @@ import sys
 
 import argparse
 
-from analyzer import Analyzer
-from analyzer import LabelledAnalyzer
+from analyzer.analyzer import Analyzer
+from analyzer.labelled_analyzer import LabelledAnalyzer
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ETA/Analyzer: A text analysis tool.")
