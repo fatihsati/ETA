@@ -13,10 +13,17 @@ git clone https://github.com/fatihsati/ETA.git
 cd ETA
 ```
 
+Make Sure you set the Pythonpath to the root directory of the project.
+
+```bash
+export PYTHONPATH=/path/to/ETA
+```
+
 Be sure you have the dependencies
 ```
 pip install -r requirements.txt
 ```
+Download the stopwords for nltk, if you haven't already
 ```
 import nltk
 nltk.download('stopwords')
@@ -28,7 +35,7 @@ nltk.download('stopwords')
     1. Analyzer
     2. LabelledAnalyzer
 
-**It is planned to expand this list in the future**
+> ***It is planned to expand this list in the future***
 
 ## Usage/Examples
 

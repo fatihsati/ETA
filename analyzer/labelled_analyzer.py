@@ -2,9 +2,9 @@ import os
 
 import pandas as pd
 
-from ETA.analyzer.analyzer import Analyzer
-from ETA.analyzer.file_manager import FileManager
-from ETA.analyzer.plotter import Plotter
+from analyzer.analyzer import Analyzer
+from analyzer.file_manager import FileManager
+from analyzer.plotter import Plotter
 
 
 class LabelledAnalyzer(FileManager):
